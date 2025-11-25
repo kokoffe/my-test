@@ -6,7 +6,8 @@ const ctx = canvas.getContext('2d');
 // const socket = new WebSocket('ws://localhost:8080');
 
 // ---- 部署到网站后，需要改成这个 ----
-const socket = new WebSocket('ws://你的公网IP地址:117.176.220.123:8080');
+const socket = new WebSocket('ws://117.176.220.123:8080');
+
 
 let isDrawing = false;
 
