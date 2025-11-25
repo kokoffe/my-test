@@ -11,6 +11,38 @@ body {
 }
 
 canvas {
-    background-color: #000;
-    border: 2px solid white;
+    border: 2px solid black;
+    background-color: #fff;
+}
+
+/* 按钮容器样式 */
+.controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 20px;
+}
+
+.control-row {
+    display: flex;
+    justify-content: center;
+    margin: 5px 0;
+}
+
+.controls button {
+    width: 60px;
+    height: 60px;
+    font-size: 24px;
+    font-weight: bold;
+    color: white;
+    background-color: #555;
+    border: 2px solid #777;
+    border-radius: 10px;
+    margin: 0 5px;
+    /* 添加触摸效果 */
+    -webkit-tap-highlight-color: transparent;
+}
+
+.controls button:active {
+    background-color: #777;
 }

@@ -15,6 +15,12 @@ window.onload = function() {
     let dy = 0;
     let score = 0;
 
+    // 按键常量
+    const LEFT_KEY = 37;
+    const RIGHT_KEY = 39;
+    const UP_KEY = 38;
+    const DOWN_KEY = 40;
+
     // 随机生成食物
     function randomFood() {
         food = {
@@ -39,7 +45,8 @@ window.onload = function() {
         }
 
         // 检查是否吃到自己
-        for (let segment of snake) {
+        for (let i = 0; i < snake.length; i++) {
+            const segment = snake[i];
             if (head.x === segment.x && head.y === segment.y) {
                 resetGame();
                 return;
@@ -78,38 +85,57 @@ window.onload = function() {
         randomFood();
     }
 
-    // 键盘控制
-    document.addEventListener('keydown', changeDirection);
-
-    function changeDirection(event) {
-        const LEFT_KEY = 37;
-        const RIGHT_KEY = 39;
-        const UP_KEY = 38;
-        const DOWN_KEY = 40;
-
-        const keyPressed = event.keyCode;
+    // 方向改变逻辑
+    function changeDirection(keyCode) {
         const goingUp = dy === -1;
         const goingDown = dy === 1;
         const goingRight = dx === 1;
         const goingLeft = dx === -1;
 
-        if (keyPressed === LEFT_KEY && !goingRight) {
+        if (keyCode === LEFT_KEY && !goingRight) {
             dx = -1;
             dy = 0;
         }
-        if (keyPressed === UP_KEY && !goingDown) {
+        if (keyCode === UP_KEY && !goingDown) {
             dx = 0;
             dy = -1;
         }
-        if (keyPressed === RIGHT_KEY && !goingLeft) {
+        if (keyCode === RIGHT_KEY && !goingLeft) {
             dx = 1;
             dy = 0;
         }
-        if (keyPressed === DOWN_KEY && !goingUp) {
+        if (keyCode === DOWN_KEY && !goingUp) {
             dx = 0;
             dy = 1;
         }
     }
+
+    // 键盘控制监听
+    document.addEventListener('keydown', (event) => {
+        changeDirection(event.keyCode);
+    });
+
+    // 按钮控制监听
+    document.getElementById('upButton').addEventListener('click', () => changeDirection(UP_KEY));
+    document.getElementById('downButton').addEventListener('click', () => changeDirection(DOWN_KEY));
+    document.getElementById('leftButton').addEventListener('click', () => changeDirection(LEFT_KEY));
+    document.getElementById('rightButton').addEventListener('click', () => changeDirection(RIGHT_KEY));
+    
+    // 为移动端添加触摸事件
+    const buttons = document.querySelectorAll('.controls button');
+    buttons.forEach(button => {
+        // 触摸开始时触发方向改变
+        button.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // 阻止默认的滚动行为
+            const id = e.target.id;
+            switch(id) {
+                case 'upButton': changeDirection(UP_KEY); break;
+                case 'downButton': changeDirection(DOWN_KEY); break;
+                case 'leftButton': changeDirection(LEFT_KEY); break;
+                case 'rightButton': changeDirection(RIGHT_KEY); break;
+            }
+        });
+    });
 
     // 游戏主循环
     randomFood();
