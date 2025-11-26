@@ -5,10 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>贪吃蛇</title>
     <link rel="stylesheet" href="style.css">
+    <!-- 添加 Supabase 客户端库 -->
+    <script src="https://unpkg.com/@supabase/supabase-js"></script>
 </head>
 <body>
+    <!-- 昵称输入模态框 -->
+    <div id="nameModal" class="modal">
+        <div class="modal-content">
+            <h2>请输入你的昵称</h2>
+            <input type="text" id="playerNameInput" placeholder="最多10个字符" maxlength="10">
+            <button id="startGameBtn">开始游戏</button>
+        </div>
+    </div>
+
     <h1>贪吃蛇</h1>
     <div class="score-container">得分: <span id="score">0</span></div>
+    <!-- 排行榜将动态插入到这里 -->
     <canvas id="gameCanvas" width="400" height="400"></canvas>
     
     <!-- 方向按钮 -->

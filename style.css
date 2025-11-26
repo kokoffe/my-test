@@ -13,6 +13,7 @@ body {
 canvas {
     border: 2px solid black;
     background-color: #fff;
+    margin-top: 10px;
 }
 
 /* 按钮容器样式 */
@@ -39,10 +40,77 @@ canvas {
     border: 2px solid #777;
     border-radius: 10px;
     margin: 0 5px;
-    /* 添加触摸效果 */
     -webkit-tap-highlight-color: transparent;
 }
 
 .controls button:active {
     background-color: #777;
+}
+
+/* 模态框样式 */
+.modal {
+    display: flex;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.7);
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background-color: #444;
+    padding: 20px;
+    border: 1px solid #888;
+    border-radius: 10px;
+    width: 300px;
+    text-align: center;
+}
+
+#playerNameInput {
+    width: 90%;
+    padding: 10px;
+    margin: 15px 0;
+    box-sizing: border-box;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+#startGameBtn {
+    width: 100px;
+    padding: 10px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+#startGameBtn:hover {
+    background-color: #45a049;
+}
+
+/* 排行榜样式 */
+#leaderboard {
+    margin-top: 20px;
+    padding: 10px;
+    border: 1px solid #777;
+    border-radius: 5px;
+    background-color: #444;
+    text-align: left;
+    width: 400px;
+}
+
+#leaderboard h2 {
+    text-align: center;
+    margin-top: 0;
+}
+
+#leaderboard ol {
+    padding-left: 20px;
 }

@@ -1,4 +1,11 @@
 window.onload = function() {
+    // --- Supabase 初始化 ---
+    // 请替换为你自己的 Supabase URL 和 Anon Key
+    const supabaseUrl = 'https://dudqpldnkjdsvwrwills.supabase.co';
+    const supabaseAnonKey = 'sb_publishable_cx8x77_lc1QkxEapBj6eTQ_RS4bs5Ny';
+    const supabase = supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+    // --- 全局变量 ---
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const scoreElement = document.getElementById('score');
@@ -7,21 +14,82 @@ window.onload = function() {
     const gridSize = 20;
     const tileCount = canvas.width / gridSize;
 
-    let snake = [
-        {x: 10, y: 10}
-    ];
+    let snake = [{x: 10, y: 10}];
     let food = {};
     let dx = 0;
     let dy = 0;
     let score = 0;
+    let playerName = ''; // 存储玩家昵称
+    let gameLoop = null; // 用于存储游戏循环的ID
 
-    // 按键常量
-    const LEFT_KEY = 37;
-    const RIGHT_KEY = 39;
-    const UP_KEY = 38;
-    const DOWN_KEY = 40;
+    // --- 昵称和游戏启动逻辑 ---
+    const nameModal = document.getElementById('nameModal');
+    const playerNameInput = document.getElementById('playerNameInput');
+    const startGameBtn = document.getElementById('startGameBtn');
 
-    // 随机生成食物
+    startGameBtn.addEventListener('click', async () => {
+        const name = playerNameInput.value.trim();
+        if (name) {
+            playerName = name;
+            nameModal.style.display = 'none';
+            await fetchAndDisplayLeaderboard(); // 开始前先加载排行榜
+            startGame(); // 开始游戏
+        } else {
+            alert('昵称不能为空！');
+        }
+    });
+
+    // --- 游戏控制函数 ---
+    function startGame() {
+        randomFood();
+        if (gameLoop) clearInterval(gameLoop);
+        gameLoop = setInterval(drawGame, 100);
+    }
+
+    // --- Supabase 交互函数 ---
+    async function uploadScore(name, playerScore) {
+        const { error } = await supabase
+            .from('leaderboard')
+            .insert([{ player_name: name, score: playerScore }]);
+        
+        if (error) {
+            console.error('上传分数失败:', error);
+        } else {
+            console.log('分数上传成功!');
+        }
+    }
+
+    async function fetchAndDisplayLeaderboard() {
+        const { data, error } = await supabase
+            .from('leaderboard')
+            .select('player_name, score')
+            .order('score', { ascending: false })
+            .limit(15);
+
+        if (error) {
+            console.error('获取排行榜失败:', error);
+            return;
+        }
+
+        const oldLeaderboardElement = document.getElementById('leaderboard');
+        if (oldLeaderboardElement) oldLeaderboardElement.remove();
+
+        const leaderboardElement = document.createElement('div');
+        leaderboardElement.id = 'leaderboard';
+        leaderboardElement.innerHTML = '<h2>排行榜 (前15名)</h2>';
+
+        const list = document.createElement('ol');
+        data.forEach(entry => {
+            const item = document.createElement('li');
+            item.textContent = `${entry.player_name}: ${entry.score}`;
+            list.appendChild(item);
+        });
+
+        leaderboardElement.appendChild(list);
+        document.querySelector('.score-container').after(leaderboardElement);
+    }
+
+    // --- 游戏核心逻辑 ---
     function randomFood() {
         food = {
             x: Math.floor(Math.random() * tileCount),
@@ -29,115 +97,129 @@ window.onload = function() {
         };
     }
 
-    // 绘制游戏元素
     function drawGame() {
-        // 清空画布
-        ctx.fillStyle = 'black';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // 移动蛇头
-        const head = {x: snake[0].x + dx, y: snake[0].y + dy};
-
-        // 检查碰撞
-        if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
+        clearCanvas();
+        moveSnake();
+        
+        if (checkGameOver()) {
             resetGame();
             return;
         }
 
-        // 检查是否吃到自己
-        for (let i = 0; i < snake.length; i++) {
-            const segment = snake[i];
-            if (head.x === segment.x && head.y === segment.y) {
-                resetGame();
-                return;
+        checkFoodCollision();
+        drawFood();
+        drawSnake();
+    }
+
+    function clearCanvas() {
+        ctx.fillStyle = 'black';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    
+    function moveSnake() {
+        const head = {x: snake[0].x + dx, y: snake[0].y + dy};
+        snake.unshift(head);
+    }
+
+    function checkGameOver() {
+        const head = snake[0];
+        // 撞墙检测
+        if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
+            return true;
+        }
+        // 撞自己检测
+        for (let i = 1; i < snake.length; i++) {
+            if (head.x === snake[i].x && head.y === snake[i].y) {
+                return true;
             }
         }
+        return false;
+    }
 
-        snake.unshift(head); // 新蛇头
-
-        // 检查是否吃到食物
+    function checkFoodCollision() {
+        const head = snake[0];
         if (head.x === food.x && head.y === food.y) {
             score += 10;
             scoreElement.textContent = score;
             randomFood();
         } else {
-            snake.pop(); // 没吃到食物，移除蛇尾
+            snake.pop();
         }
+    }
 
-        // 画蛇
+    function drawSnake() {
         ctx.fillStyle = 'lime';
         for (let segment of snake) {
             ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize - 2, gridSize - 2);
         }
+    }
 
-        // 画食物
+    function drawFood() {
         ctx.fillStyle = 'red';
         ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize - 2, gridSize - 2);
     }
 
-    // 重置游戏
-    function resetGame() {
+    async function resetGame() {
+        if (gameLoop) clearInterval(gameLoop);
+        
+        if (score > 0) {
+            await uploadScore(playerName, score);
+        }
+
+        await fetchAndDisplayLeaderboard();
+        
         snake = [{x: 10, y: 10}];
         dx = 0;
         dy = 0;
         score = 0;
         scoreElement.textContent = score;
-        randomFood();
+        
+        if (confirm(`游戏结束! 你的得分是 ${score}。是否重新开始？`)) {
+            startGame();
+        }
     }
 
-    // 方向改变逻辑
     function changeDirection(keyCode) {
         const goingUp = dy === -1;
         const goingDown = dy === 1;
         const goingRight = dx === 1;
         const goingLeft = dx === -1;
 
-        if (keyCode === LEFT_KEY && !goingRight) {
-            dx = -1;
-            dy = 0;
+        if (keyCode === 37 && !goingRight) { // LEFT
+            dx = -1; dy = 0;
         }
-        if (keyCode === UP_KEY && !goingDown) {
-            dx = 0;
-            dy = -1;
+        if (keyCode === 38 && !goingDown) { // UP
+            dx = 0; dy = -1;
         }
-        if (keyCode === RIGHT_KEY && !goingLeft) {
-            dx = 1;
-            dy = 0;
+        if (keyCode === 39 && !goingLeft) { // RIGHT
+            dx = 1; dy = 0;
         }
-        if (keyCode === DOWN_KEY && !goingUp) {
-            dx = 0;
-            dy = 1;
+        if (keyCode === 40 && !goingUp) { // DOWN
+            dx = 0; dy = 1;
         }
     }
 
-    // 键盘控制监听
+    // --- 事件监听 ---
     document.addEventListener('keydown', (event) => {
         changeDirection(event.keyCode);
     });
 
-    // 按钮控制监听
-    document.getElementById('upButton').addEventListener('click', () => changeDirection(UP_KEY));
-    document.getElementById('downButton').addEventListener('click', () => changeDirection(DOWN_KEY));
-    document.getElementById('leftButton').addEventListener('click', () => changeDirection(LEFT_KEY));
-    document.getElementById('rightButton').addEventListener('click', () => changeDirection(RIGHT_KEY));
+    document.getElementById('upButton').addEventListener('click', () => changeDirection(38));
+    document.getElementById('downButton').addEventListener('click', () => changeDirection(40));
+    document.getElementById('leftButton').addEventListener('click', () => changeDirection(37));
+    document.getElementById('rightButton').addEventListener('click', () => changeDirection(39));
     
-    // 为移动端添加触摸事件
     const buttons = document.querySelectorAll('.controls button');
     buttons.forEach(button => {
-        // 触摸开始时触发方向改变
         button.addEventListener('touchstart', (e) => {
-            e.preventDefault(); // 阻止默认的滚动行为
+            e.preventDefault();
             const id = e.target.id;
             switch(id) {
-                case 'upButton': changeDirection(UP_KEY); break;
-                case 'downButton': changeDirection(DOWN_KEY); break;
-                case 'leftButton': changeDirection(LEFT_KEY); break;
-                case 'rightButton': changeDirection(RIGHT_KEY); break;
+                case 'upButton': changeDirection(38); break;
+                case 'downButton': changeDirection(40); break;
+                case 'leftButton': changeDirection(37); break;
+                case 'rightButton': changeDirection(39); break;
             }
         });
     });
-
-    // 游戏主循环
-    randomFood();
-    setInterval(drawGame, 100);
 };
