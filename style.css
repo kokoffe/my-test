@@ -1,4 +1,4 @@
-/* 全局重置 + 基础样式（统一风格） */
+/* 全局重置 + 基础样式 */
 * {
     margin: 0;
     padding: 0;
@@ -14,60 +14,72 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 25px; /* 元素间距放大，更舒展 */
+    gap: 20px; /* 元素间距统一 */
 }
 
-/* 头部样式（标题+分数） */
+/* 头部样式 */
 .game-header {
     text-align: center;
     width: 100%;
-    max-width: 900px; /* 适配水平布局的最大宽度 */
+    max-width: 1000px; /* 适配左右布局宽度 */
 }
 
 .game-title {
     color: #ffd700; /* 金色标题，突出游戏感 */
-    font-size: 2.2rem;
-    margin-bottom: 12px;
-    text-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
+    font-size: 2rem;
+    margin-bottom: 10px;
+    text-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
 }
 
 .score-container {
-    font-size: 1.3rem;
+    font-size: 1.2rem;
     background-color: rgba(0, 0, 0, 0.5);
-    padding: 10px 20px;
-    border-radius: 25px;
+    padding: 8px 16px;
+    border-radius: 20px;
     display: inline-flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+}
+
+.score-label {
+    color: #fff;
 }
 
 .score-value {
     color: #39ff14; /* 绿色得分，醒目 */
     font-weight: bold;
-    font-size: 1.5rem;
+    font-size: 1.3rem;
     transition: all 0.3s; /* 得分变化动画 */
 }
 
 .score-value:hover {
-    transform: scale(1.15);
+    transform: scale(1.1);
 }
 
-/* 核心布局：Canvas + 排行榜（水平排列） */
-.game-core {
+/* 游戏容器（Canvas+排行榜：大屏幕左右，小屏幕上下） */
+.game-container {
     display: flex;
-    align-items: flex-start; /* 顶部对齐，避免排行榜过长时Canvas下移 */
-    gap: 25px; /* 两者间距放大 */
+    align-items: flex-start; /* 顶部对齐，避免排行榜错位 */
+    gap: 20px;
     width: 100%;
-    max-width: 900px; /* 限制最大宽度，避免大屏幕太分散 */
+    max-width: 1000px;
     padding: 0 10px;
 }
 
-/* Canvas容器（占比60%，确保正方形） */
+/* Canvas区域：占比60%，包含Canvas和控制按钮 */
+.canvas-area {
+    width: 60%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+/* Canvas响应式适配（1:1正方形） */
 .canvas-wrapper {
     position: relative;
-    width: 60%; /* 水平布局时Canvas占主要空间 */
-    padding-top: 60%; /* 1:1正方形比例（关键，避免Canvas变形） */
-    min-width: 300px; /* 最小宽度，小屏幕不压缩 */
+    width: 100%;
+    padding-top: 100%; /* 1:1比例核心 */
 }
 
 #gameCanvas {
@@ -76,224 +88,237 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    border: 4px solid #ffd700; /* 金色边框加粗，更醒目 */
-    border-radius: 10px;
-    box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+    border: 3px solid #ffd700; /* 金色边框 */
+    border-radius: 8px;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
 }
 
-/* 游戏提示（等待开始/状态提示） */
+/* 游戏状态提示 */
 .game-tip {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: 1.2rem;
-    color: rgba(255, 255, 255, 0.9);
-    background-color: rgba(0, 0, 0, 0.8);
-    padding: 12px 24px;
-    border-radius: 12px;
-    z-index: 10; /* 确保在Canvas上方 */
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.8);
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 10px 20px;
+    border-radius: 10px;
+    z-index: 10;
     transition: opacity 0.3s;
 }
 
-/* 道具提示（橙色半透明，层级更高） */
+/* 道具提示 */
 .prop-tip {
     position: absolute;
     top: 20%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: 1.1rem;
+    font-size: 1rem;
     color: #fff;
-    background-color: rgba(255, 165, 0, 0.95); /* 橙色加深，更醒目 */
-    padding: 10px 20px;
-    border-radius: 10px;
-    z-index: 15; /* 比游戏提示层级高 */
-    opacity: 0; /* 默认隐藏 */
+    background-color: rgba(255, 165, 0, 0.9); /* 橙色半透明 */
+    padding: 8px 16px;
+    border-radius: 8px;
+    z-index: 15;
+    opacity: 0;
     transition: opacity 0.3s;
-    pointer-events: none; /* 不影响点击操作 */
+    pointer-events: none; /* 不影响点击 */
 }
 
-/* 排行榜（放旁边，占比35%） */
+/* 排行榜区域：占比35%，右侧布局 */
+.leaderboard-area {
+    width: 35%;
+    max-height: calc(100% + 150px); /* 高度匹配Canvas+控制按钮 */
+}
+
+/* 排行榜样式（保留原有设计，优化适配） */
 .leaderboard-container {
-    width: 35%; /* 水平布局时排行榜占侧栏空间 */
-    background-color: rgba(0, 0, 0, 0.6); /* 深色背景，匹配整体风格 */
-    border-radius: 10px;
-    padding: 20px;
-    border: 2px solid rgba(255, 215, 0, 0.5); /* 金色边框，呼应主题 */
-    min-width: 250px; /* 最小宽度，避免内容挤压 */
-    max-height: calc(60vw + 40px); /* 最大高度=Canvas高度+内边距，避免过长 */
-    overflow-y: auto; /* 超出滚动 */
+    width: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 8px;
+    padding: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    height: 100%;
 }
 
 .leaderboard-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 15px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid rgba(255, 215, 0, 0.3); /* 分隔线 */
+    margin-bottom: 10px;
 }
 
 .leaderboard-title {
     color: #ff6b6b; /* 红色标题，突出排行榜 */
-    font-size: 1.4rem;
-    font-weight: bold;
+    font-size: 1.2rem;
 }
 
 .loading {
     color: #ffd700;
-    font-size: 1rem;
+    font-size: 0.9rem;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 5px;
 }
 
+.leaderboard-list {
+    max-height: 450px; /* 限制高度，避免过长 */
+    overflow-y: auto; /* 滚动条 */
+    padding-right: 5px;
+}
+
+/* 排行榜列表项（补充样式，确保显示正常） */
 .leaderboard-list ol {
     list-style-position: inside;
     display: flex;
     flex-direction: column;
-    gap: 12px; /* 列表项间距放大 */
+    gap: 8px;
 }
 
 .leaderboard-list li {
-    padding: 10px 15px;
+    padding: 5px 10px;
     background-color: rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
+    border-radius: 4px;
     display: flex;
     justify-content: space-between;
-    transition: all 0.2s;
-    font-size: 1.05rem;
+    transition: background-color 0.2s;
 }
 
 .leaderboard-list li:hover {
-    background-color: rgba(255, 215, 0, 0.3); /* hover时高亮，更明显 */
-    transform: translateX(5px); /* 轻微右移，交互感 */
+    background-color: rgba(255, 215, 0, 0.2); /* hover高亮 */
 }
 
-/* 排行榜排名样式 */
-.rank {
-    margin-right: 10px;
-    font-weight: bold;
-    font-size: 1.1rem;
-}
-
-.top1 { color: #ffd700; } /* 金牌黄 */
-.top2 { color: #c0c0c0; } /* 银牌灰 */
-.top3 { color: #cd7f32; } /* 铜牌棕 */
-.top4-15 { color: #fff; } /* 其他排名白色 */
-
-/* 底部控制按钮（放大+居中） */
-.control-area {
+/* 控制按钮样式：上下左右居中布局，放大尺寸 */
+.controls {
     width: 100%;
-    max-width: 400px; /* 限制按钮区域宽度，避免太分散 */
-    margin-top: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-.control-buttons {
+/* 3x3网格布局：中间空，上下左右放按钮 */
+.control-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr; /* 3列布局 */
-    gap: 15px; /* 按钮间距放大 */
-    width: 100%;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+    gap: 15px; /* 按钮间距 */
+    width: 380px; /* 网格宽度（放大按钮尺寸） */
+    height: 380px; /* 网格高度（与宽度一致，确保按钮正方形） */
 }
 
-/* 放大按键（核心修改：尺寸、样式） */
+/* 按钮位置定位 */
+.control-btn.up {
+    grid-area: 1 / 2 / 2 / 3; /* 上：第1行第2列 */
+}
+.control-btn.left {
+    grid-area: 2 / 1 / 3 / 2; /* 左：第2行第1列 */
+}
+.control-btn.right {
+    grid-area: 2 / 3 / 3 / 4; /* 右：第2行第3列 */
+}
+.control-btn.down {
+    grid-area: 3 / 2 / 4 / 3; /* 下：第3行第2列 */
+}
+
+/* 控制按钮样式（放大+优化交互） */
 .control-btn {
     width: 100%;
-    padding: 25px 0; /* 上下padding放大，按钮更高 */
-    font-size: 1.8rem; /* 字体放大，易识别 */
-    background-color: #16213e; /* 深色按钮，匹配背景 */
+    height: 100%;
+    font-size: 2rem; /* 字体放大 */
+    background-color: #16213e;
     color: #fff;
-    border: 3px solid #ffd700; /* 金色边框加粗 */
-    border-radius: 12px;
+    border: 3px solid #ffd700; /* 金色粗边框 */
+    border-radius: 15px; /* 圆角放大 */
     cursor: pointer;
     transition: all 0.2s;
-    touch-action: manipulation; /* 避免触摸时浏览器默认行为 */
-    outline: none;
+    touch-action: manipulation; /* 避免触摸默认行为 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-/* 按钮交互反馈（强化） */
+/* 按钮交互反馈 */
 .control-btn:hover {
     background-color: #ffd700;
     color: #16213e;
-    transform: scale(1.08); /*  hover放大更明显 */
-    box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.7); /* 高亮阴影 */
 }
 
 .control-btn:active {
     transform: scale(0.95); /* 按压缩小，模拟物理反馈 */
-    box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.4);
+    box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.4); /* 内阴影 */
 }
 
-/* 中间按钮行（左右按钮布局） */
-.middle-btns {
-    display: flex;
-    gap: 15px; /* 左右按钮间距与上下一致 */
-}
-
-/* 昵称模态框（保持风格统一） */
+/* 模态框样式（保留原有，统一风格） */
 .modal {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.9);
+    background-color: rgba(0, 0, 0, 0.8);
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 100; /* 最上层，不被遮挡 */
+    z-index: 100; /* 最上层 */
 }
 
 .modal-content {
     background-color: #16213e;
-    padding: 35px 25px;
-    border-radius: 12px;
+    padding: 30px 20px;
+    border-radius: 10px;
     width: 90%;
-    max-width: 450px;
+    max-width: 400px;
     display: flex;
     flex-direction: column;
-    gap: 25px;
-    border: 3px solid #ffd700;
-    box-shadow: 0 0 25px rgba(255, 215, 0, 0.6);
+    gap: 20px;
+    border: 2px solid #ffd700;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+    text-align: center;
 }
 
 .modal-title {
     color: #ffd700;
-    text-align: center;
-    font-size: 1.7rem;
-    font-weight: bold;
+    font-size: 1.5rem;
 }
 
 .name-input {
-    padding: 15px 20px;
-    border-radius: 8px;
+    padding: 12px 15px;
+    border-radius: 5px;
     border: 2px solid #ddd;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     outline: none;
     transition: border-color 0.2s;
+    width: 80%;
+    margin: 0 auto;
+    color: #333;
 }
 
 .name-input:focus {
-    border-color: #ffd700; /* 焦点时金色边框 */
-    box-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+    border-color: #ffd700; /* 焦点金色边框 */
+}
+
+.btn {
+    padding: 12px;
+    border-radius: 5px;
+    border: none;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 80%;
+    margin: 0 auto;
 }
 
 .start-btn {
-    padding: 15px;
-    border-radius: 8px;
-    border: none;
-    font-size: 1.3rem;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.2s;
     background-color: #ffd700;
     color: #16213e;
+    font-weight: bold;
 }
 
 .start-btn:hover {
     background-color: #e6c200;
-    transform: scale(1.05);
-    box-shadow: 0 0 12px rgba(255, 215, 0, 0.5);
+    transform: scale(1.02);
 }
 
 .start-btn:active {
@@ -303,89 +328,65 @@ body {
 /* 页脚样式 */
 .game-footer {
     margin-top: auto; /* 推到页面底部 */
-    font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
     text-align: center;
-    padding: 15px 0;
+    padding: 10px 0;
     width: 100%;
 }
 
-/* 滚动条美化（仅WebKit浏览器） */
+/* 滚动条美化（WebKit浏览器） */
 ::-webkit-scrollbar {
-    width: 8px; /* 滚动条宽度放大 */
+    width: 6px;
 }
 
 ::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.4);
-    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb {
     background: #ffd700;
-    border-radius: 4px;
-    transition: background 0.2s;
+    border-radius: 3px;
 }
 
-::-webkit-scrollbar-thumb:hover {
-    background: #e6c200; /* 滚动条hover变色 */
-}
-
-/* 响应式适配（小屏幕：垂直布局+按钮调整） */
+/* 响应式适配：小屏幕（平板/手机）恢复上下布局 */
 @media (max-width: 768px) {
-    /* 核心布局改垂直 */
-    .game-core {
+    .game-container {
         flex-direction: column;
         align-items: center;
-        gap: 20px;
     }
-
-    /* Canvas和排行榜都占100%宽度 */
-    .canvas-wrapper {
+    .canvas-area, .leaderboard-area {
         width: 100%;
-        padding-top: 100%; /* 保持正方形 */
+        max-width: 500px;
     }
-
-    .leaderboard-container {
-        width: 100%;
-        max-height: 300px; /* 限制高度，避免占满屏幕 */
+    .leaderboard-area {
+        margin-top: 10px;
+        max-height: 300px;
     }
-
-    /* 按钮尺寸适配小屏幕（仍比原来大） */
+    .control-grid {
+        width: 280px;
+        height: 280px; /* 小屏幕缩小网格 */
+    }
     .control-btn {
-        padding: 20px 0;
-        font-size: 1.5rem;
-    }
-
-    /* 标题和分数适配 */
-    .game-title {
-        font-size: 1.9rem;
-    }
-
-    .score-container {
-        font-size: 1.2rem;
-    }
-
-    .score-value {
-        font-size: 1.3rem;
+        font-size: 1.6rem; /* 小屏幕按钮字体缩小 */
+        border-width: 2px;
     }
 }
 
-/* 超小屏幕（手机竖屏）适配 */
+/* 超小屏幕（手机）适配 */
 @media (max-width: 375px) {
-    .control-buttons {
-        gap: 10px; /* 按钮间距缩小，避免溢出 */
+    .game-title {
+        font-size: 1.8rem;
     }
-
+    .score-container {
+        font-size: 1rem;
+    }
+    .control-grid {
+        width: 240px;
+        height: 240px;
+    }
     .control-btn {
-        padding: 18px 0;
         font-size: 1.4rem;
-    }
-
-    .leaderboard-container {
-        padding: 15px;
-    }
-
-    .leaderboard-title {
-        font-size: 1.2rem;
     }
 }

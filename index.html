@@ -4,12 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>像素贪吃蛇 | 经典版</title>
-    <link rel="stylesheet" href="style.css">
-    <!-- 引入字体图标（用于加载状态） -->
+    <link rel="stylesheet" href="style.css"> <!-- 单独的CSS文件 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
 </head>
 <body>
-    <!-- 昵称输入模态框（优化居中+阴影） -->
+    <!-- 昵称输入模态框 -->
     <div id="nameModal" class="modal">
         <div class="modal-content">
             <h2 class="modal-title">👾 请输入你的昵称</h2>
@@ -33,41 +32,43 @@
         </div>
     </header>
 
-    <!-- 游戏容器（Canvas+状态提示） -->
+    <!-- 游戏容器（Canvas+排行榜：左右布局核心结构） -->
     <div class="game-container">
-        <!-- Canvas父容器（用于响应式缩放） -->
-        <div class="canvas-wrapper">
-            <canvas id="gameCanvas"></canvas>
-            <!-- 游戏状态提示（如“按方向键开始”“游戏结束”） -->
-            <div id="gameTip" class="game-tip">按方向键或点击按钮开始</div>
-             <div id="propTip" class="prop-tip"></div>
-        </div>
+        <!-- Canvas区域（包含Canvas+控制按钮） -->
+        <div class="canvas-area">
+            <!-- Canvas父容器 -->
+            <div class="canvas-wrapper">
+                <canvas id="gameCanvas"></canvas>
+                <div id="gameTip" class="game-tip">按方向键或点击按钮开始</div>
+                <div id="propTip" class="prop-tip"></div>
+            </div>
 
-        <!-- 排行榜（优化样式+加载状态） -->
-        <div id="leaderboardContainer" class="leaderboard-container">
-            <div class="leaderboard-header">
-                <h2 class="leaderboard-title">🏆 排行榜（前15名）</h2>
-                <div id="leaderboardLoading" class="loading" style="display: none;">
-                    <i class="fa fa-spinner fa-spin"></i> 加载中...
+            <!-- 方向控制按钮（改为上下左右居中布局） -->
+            <div class="controls">
+                <div class="control-grid">
+                    <button id="upButton" class="control-btn up">↑</button>
+                    <button id="leftButton" class="control-btn left">←</button>
+                    <button id="rightButton" class="control-btn right">→</button>
+                    <button id="downButton" class="control-btn down">↓</button>
                 </div>
             </div>
-            <div id="leaderboard" class="leaderboard-list"></div>
+        </div>
+
+        <!-- 排行榜区域（右侧布局） -->
+        <div class="leaderboard-area">
+            <div id="leaderboardContainer" class="leaderboard-container">
+                <div class="leaderboard-header">
+                    <h2 class="leaderboard-title">🏆 排行榜（前15名）</h2>
+                    <div id="leaderboardLoading" class="loading" style="display: none;">
+                        <i class="fa fa-spinner fa-spin"></i> 加载中...
+                    </div>
+                </div>
+                <div id="leaderboard" class="leaderboard-list"></div>
+            </div>
         </div>
     </div>
 
-    <!-- 方向控制按钮（优化触摸体验） -->
-    <div class="controls">
-        <div class="control-row top-row">
-            <button id="upButton" class="control-btn">↑</button>
-        </div>
-        <div class="control-row middle-row">
-            <button id="leftButton" class="control-btn">←</button>
-            <button id="downButton" class="control-btn">↓</button>
-            <button id="rightButton" class="control-btn">→</button>
-        </div>
-    </div>
-
-    <!-- 页脚（可选，增加版权信息） -->
+    <!-- 页脚 -->
     <footer class="game-footer">
         <p>通过 Netlify + Supabase 部署 | 经典贪吃蛇复刻</p>
     </footer>
