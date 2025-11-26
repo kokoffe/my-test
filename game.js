@@ -193,25 +193,32 @@ window.onload = async function() {
         ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize - 2, gridSize - 2);
     }
 
+    // ================== 修改后的函数 ==================
     async function resetGame() {
         if (gameLoop) clearInterval(gameLoop);
         
-        if (score > 0) {
-            await uploadScore(playerName, score);
+        // 1. 在重置 score 之前，将其保存到临时变量
+        const finalScore = score;
+
+        if (finalScore > 0) {
+            // 2. 使用临时变量上传分数
+            await uploadScore(playerName, finalScore);
         }
 
         await fetchAndDisplayLeaderboard();
         
-        // 调用 startGame 来准备下一局，而不是直接设置变量
+        // 3. 重置游戏状态
         startGame(); 
         
-        if (confirm(`游戏结束! 你的得分是 ${score}。是否重新开始？`)) {
+        // 4. 使用临时变量显示最终得分
+        if (confirm(`游戏结束! 你的得分是 ${finalScore}。是否重新开始？`)) {
             // 游戏已经通过 startGame() 准备好了，等待用户按键
         } else {
             // 如果用户不重新开始，可以清空画布
             clearCanvas();
         }
     }
+    // =================================================
 
     function changeDirection(keyCode) {
         // 如果游戏循环还没开始，说明这是第一次按键，启动游戏
