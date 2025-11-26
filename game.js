@@ -1,9 +1,10 @@
-window.onload = function() {
-    // --- Supabase 初始化 ---
-    // 请替换为你自己的 Supabase URL 和 Anon Key
+window.onload = async function() { // 注意这里加了 async
+    // --- Supabase 动态初始化 ---
+    const { createClient } = await import('https://unpkg.com/@supabase/supabase-js');
+    
     const supabaseUrl = 'https://dudqpldnkjdsvwrwills.supabase.co';
-    const supabaseAnonKey = 'sb_publishable_cx8x77_lc1QkxEapBj6eTQ_RS4bs5Ny';
-    const supabase = supabase.createClient(supabaseUrl, supabaseAnonKey);
+    const supabaseAnonKey = 'sb_secret_GyZwiD9zNIzVuSn1ymx_QA_5v-jRncc';
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
     // --- 全局变量 ---
     const canvas = document.getElementById('gameCanvas');
@@ -32,8 +33,8 @@ window.onload = function() {
         if (name) {
             playerName = name;
             nameModal.style.display = 'none';
-            await fetchAndDisplayLeaderboard(); // 开始前先加载排行榜
-            startGame(); // 开始游戏
+            await fetchAndDisplayLeaderboard();
+            startGame();
         } else {
             alert('昵称不能为空！');
         }
@@ -123,11 +124,9 @@ window.onload = function() {
 
     function checkGameOver() {
         const head = snake[0];
-        // 撞墙检测
         if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
             return true;
         }
-        // 撞自己检测
         for (let i = 1; i < snake.length; i++) {
             if (head.x === snake[i].x && head.y === snake[i].y) {
                 return true;
