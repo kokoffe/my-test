@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>贪吃蛇</title>
     <link rel="stylesheet" href="style.css">
-    <!-- 添加 Supabase 客户端库 -->
-    <script src="https://unpkg.com/@supabase/supabase-js"></script>
+    <!-- 添加 Supabase 客户端库，并使用 defer -->
+    <script src="https://unpkg.com/@supabase/supabase-js" defer></script>
 </head>
 <body>
     <!-- 昵称输入模态框 -->
@@ -35,6 +35,7 @@
         </div>
     </div>
 
-    <script src="game.js"></script>
+    <!-- 引入游戏逻辑脚本，并使用 defer -->
+    <script src="game.js" defer></script>
 </body>
 </html>
