@@ -1,6 +1,6 @@
 window.onload = async function() { // 注意这里加了 async
     // --- Supabase 动态初始化 ---
-    const { createClient } = await import('https://unpkg.com/@supabase/supabase-js');
+   const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
     
     const supabaseUrl = 'https://dudqpldnkjdsvwrwills.supabase.co';
     const supabaseAnonKey = 'sb_secret_GyZwiD9zNIzVuSn1ymx_QA_5v-jRncc';
