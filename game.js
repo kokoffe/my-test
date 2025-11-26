@@ -1,6 +1,6 @@
-window.onload = async function() { // 注意这里加了 async
+window.onload = async function() {
     // --- Supabase 动态初始化 ---
-   const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
     
     const supabaseUrl = 'https://dudqpldnkjdsvwrwills.supabase.co';
     const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1ZHFwbGRua2pkc3Z3cndpbGxzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQxMjA1NjAsImV4cCI6MjA3OTY5NjU2MH0.FaWgUWgosKNos-dIqrW4avOiq7Xfp1YpxH7QiCqAtcM';
@@ -27,14 +27,30 @@ window.onload = async function() { // 注意这里加了 async
     const nameModal = document.getElementById('nameModal');
     const playerNameInput = document.getElementById('playerNameInput');
     const startGameBtn = document.getElementById('startGameBtn');
+    
+    // 从 localStorage 获取昵称，如果没有则为 null
+    playerName = localStorage.getItem('snakePlayerName');
+
+    // 检查是否已有昵称
+    if (playerName) {
+        // 如果有昵称，隐藏模态框，直接准备游戏
+        nameModal.style.display = 'none';
+        await fetchAndDisplayLeaderboard();
+        startGame(); // 准备好游戏，等待用户按键
+    } else {
+        // 如果没有昵称，显示模态框，等待用户输入
+        nameModal.style.display = 'flex';
+    }
 
     startGameBtn.addEventListener('click', async () => {
         const name = playerNameInput.value.trim();
         if (name) {
             playerName = name;
+            // 将昵称存入 localStorage
+            localStorage.setItem('snakePlayerName', playerName);
             nameModal.style.display = 'none';
             await fetchAndDisplayLeaderboard();
-            startGame();
+            startGame(); // 准备好游戏，等待用户按键
         } else {
             alert('昵称不能为空！');
         }
@@ -42,9 +58,20 @@ window.onload = async function() { // 注意这里加了 async
 
     // --- 游戏控制函数 ---
     function startGame() {
+        // 重置游戏状态，但不立即开始主循环
+        snake = [{x: 10, y: 10}];
+        dx = 0;
+        dy = 0;
+        score = 0;
+        scoreElement.textContent = score;
         randomFood();
+        
+        // 清除可能存在的旧循环
         if (gameLoop) clearInterval(gameLoop);
-        gameLoop = setInterval(drawGame, 100);
+        gameLoop = null; // 标记为未开始
+
+        // 绘制初始画面
+        drawGame(); 
     }
 
     // --- Supabase 交互函数 ---
@@ -100,6 +127,14 @@ window.onload = async function() { // 注意这里加了 async
 
     function drawGame() {
         clearCanvas();
+        
+        // 如果游戏还没开始（即玩家还没按方向键），则只绘制静态画面，不进行移动和碰撞检测
+        if (gameLoop === null) {
+            drawFood();
+            drawSnake();
+            return;
+        }
+
         moveSnake();
         
         if (checkGameOver()) {
@@ -167,18 +202,23 @@ window.onload = async function() { // 注意这里加了 async
 
         await fetchAndDisplayLeaderboard();
         
-        snake = [{x: 10, y: 10}];
-        dx = 0;
-        dy = 0;
-        score = 0;
-        scoreElement.textContent = score;
+        // 调用 startGame 来准备下一局，而不是直接设置变量
+        startGame(); 
         
         if (confirm(`游戏结束! 你的得分是 ${score}。是否重新开始？`)) {
-            startGame();
+            // 游戏已经通过 startGame() 准备好了，等待用户按键
+        } else {
+            // 如果用户不重新开始，可以清空画布
+            clearCanvas();
         }
     }
 
     function changeDirection(keyCode) {
+        // 如果游戏循环还没开始，说明这是第一次按键，启动游戏
+        if (gameLoop === null) {
+            gameLoop = setInterval(drawGame, 100);
+        }
+
         const goingUp = dy === -1;
         const goingDown = dy === 1;
         const goingRight = dx === 1;
