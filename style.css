@@ -1,116 +1,319 @@
+/* 全局重置 + 基础样式 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Microsoft YaHei", "Arial", sans-serif;
+}
+
 body {
+    background-color: #1a1a2e; /* 深色背景，减少视觉疲劳 */
+    color: #fff;
+    min-height: 100vh;
+    padding: 20px 10px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    height: 100vh;
-    margin: 0;
-    background-color: #333;
-    color: white;
-    font-family: 'Courier New', Courier, monospace;
+    gap: 20px; /* 元素间距统一 */
 }
 
-canvas {
-    border: 2px solid black;
-    background-color: #fff;
-    margin-top: 10px;
+/* 头部样式 */
+.game-header {
+    text-align: center;
+    width: 100%;
+    max-width: 500px;
 }
 
-/* 按钮容器样式 */
+.game-title {
+    color: #ffd700; /* 金色标题，突出游戏感 */
+    font-size: 2rem;
+    margin-bottom: 10px;
+    text-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+}
+
+.score-container {
+    font-size: 1.2rem;
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 8px 16px;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.score-value {
+    color: #39ff14; /* 绿色得分，醒目 */
+    font-weight: bold;
+    font-size: 1.3rem;
+    transition: all 0.3s; /* 得分变化动画 */
+}
+
+.score-value:hover {
+    transform: scale(1.1);
+}
+
+/* 游戏容器（Canvas+排行榜） */
+.game-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    width: 100%;
+    max-width: 500px;
+}
+
+/* Canvas响应式适配 */
+.canvas-wrapper {
+    position: relative;
+    width: 100%;
+    padding-top: 100%; /* 1:1正方形比例，确保Canvas是正方形 */
+}
+
+#gameCanvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 3px solid #ffd700; /* 金色边框，呼应标题 */
+    border-radius: 8px;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+}
+
+/* 游戏状态提示（如“等待开始”） */
+.game-tip {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.8);
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 10px 20px;
+    border-radius: 10px;
+    z-index: 10; /* 确保在Canvas上方 */
+    transition: opacity 0.3s;
+}
+
+/* 排行榜样式 */
+.leaderboard-container {
+    width: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 8px;
+    padding: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.leaderboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.leaderboard-title {
+    color: #ff6b6b; /* 红色标题，突出排行榜 */
+    font-size: 1.2rem;
+}
+
+.loading {
+    color: #ffd700;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.leaderboard-list {
+    max-height: 250px; /* 限制高度，避免过长 */
+    overflow-y: auto; /* 滚动条 */
+    padding-right: 5px;
+}
+
+.leaderboard-list ol {
+    list-style-position: inside;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.leaderboard-list li {
+    padding: 5px 10px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    transition: background-color 0.2s;
+}
+
+.leaderboard-list li:hover {
+    background-color: rgba(255, 215, 0, 0.2); /*  hover时高亮 */
+}
+
+/* 控制按钮样式 */
 .controls {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-top: 20px;
+    gap: 10px;
+    margin-top: 10px;
 }
 
 .control-row {
     display: flex;
-    justify-content: center;
-    margin: 5px 0;
+    gap: 10px;
 }
 
-.controls button {
-    width: 60px;
-    height: 60px;
-    font-size: 24px;
-    font-weight: bold;
-    color: white;
-    background-color: #555;
-    border: 2px solid #777;
+.control-btn {
+    width: 70px;
+    height: 70px;
+    font-size: 1.5rem;
+    background-color: #16213e;
+    color: #fff;
+    border: 2px solid #ffd700;
     border-radius: 10px;
-    margin: 0 5px;
-    -webkit-tap-highlight-color: transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+    touch-action: manipulation; /* 避免触摸时浏览器默认行为 */
 }
 
-.controls button:active {
-    background-color: #777;
+/* 按钮交互反馈 */
+.control-btn:hover {
+    background-color: #ffd700;
+    color: #16213e;
+    transform: scale(1.05);
+}
+
+.control-btn:active {
+    transform: scale(0.95); /* 按压时缩小，模拟物理反馈 */
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
 }
 
 /* 模态框样式 */
 .modal {
-    display: flex;
     position: fixed;
-    z-index: 1;
-    left: 0;
     top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
-    overflow: auto;
-    background-color: rgba(0,0,0,0.7);
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
     align-items: center;
     justify-content: center;
+    z-index: 100; /* 最上层 */
 }
 
 .modal-content {
-    background-color: #444;
-    padding: 20px;
-    border: 1px solid #888;
+    background-color: #16213e;
+    padding: 30px 20px;
     border-radius: 10px;
-    width: 300px;
-    text-align: center;
-}
-
-#playerNameInput {
     width: 90%;
-    padding: 10px;
-    margin: 15px 0;
-    box-sizing: border-box;
-    border: 1px solid #ccc;
-    border-radius: 5px;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    border: 2px solid #ffd700;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
 }
 
-#startGameBtn {
-    width: 100px;
-    padding: 10px;
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 16px;
-}
-
-#startGameBtn:hover {
-    background-color: #45a049;
-}
-
-/* 排行榜样式 */
-#leaderboard {
-    margin-top: 20px;
-    padding: 10px;
-    border: 1px solid #777;
-    border-radius: 5px;
-    background-color: #444;
-    text-align: left;
-    width: 400px;
-}
-
-#leaderboard h2 {
+.modal-title {
+    color: #ffd700;
     text-align: center;
-    margin-top: 0;
+    font-size: 1.5rem;
 }
 
-#leaderboard ol {
-    padding-left: 20px;
+.name-input {
+    padding: 12px 15px;
+    border-radius: 5px;
+    border: 2px solid #ddd;
+    font-size: 1.1rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.name-input:focus {
+    border-color: #ffd700; /* 焦点时金色边框 */
+}
+
+.btn {
+    padding: 12px;
+    border-radius: 5px;
+    border: none;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.start-btn {
+    background-color: #ffd700;
+    color: #16213e;
+    font-weight: bold;
+}
+
+.start-btn:hover {
+    background-color: #e6c200;
+    transform: scale(1.02);
+}
+
+.start-btn:active {
+    transform: scale(0.98);
+}
+
+/* 页脚样式 */
+.game-footer {
+    margin-top: auto; /* 推到页面底部 */
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
+    text-align: center;
+    padding: 10px 0;
+}
+
+/* 滚动条美化（仅WebKit浏览器） */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #ffd700;
+    border-radius: 3px;
+}
+
+/* 适配小屏幕（手机） */
+@media (max-width: 375px) {
+    .control-btn {
+        width: 60px;
+        height: 60px;
+        font-size: 1.2rem;
+    }
+
+    .game-title {
+        font-size: 1.8rem;
+    }
+
+    .score-container {
+        font-size: 1rem;
+    }
+}
+
+
+/* 道具效果提示（在Canvas上方，游戏提示下方） */
+.prop-tip {
+    position: absolute;
+    top: 20%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1rem;
+    color: #fff;
+    background-color: rgba(255, 165, 0, 0.9); /* 橙色半透明背景 */
+    padding: 8px 16px;
+    border-radius: 8px;
+    z-index: 15; /* 比游戏提示层级高 */
+    opacity: 0; /* 默认隐藏 */
+    transition: opacity 0.3s;
+    pointer-events: none; /* 不影响点击操作 */
 }
