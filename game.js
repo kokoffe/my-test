@@ -3,7 +3,7 @@ window.onload = async function() { // 注意这里加了 async
    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
     
     const supabaseUrl = 'https://dudqpldnkjdsvwrwills.supabase.co';
-    const supabaseAnonKey = 'sb_secret_GyZwiD9zNIzVuSn1ymx_QA_5v-jRncc';
+    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1ZHFwbGRua2pkc3Z3cndpbGxzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQxMjA1NjAsImV4cCI6MjA3OTY5NjU2MH0.FaWgUWgosKNos-dIqrW4avOiq7Xfp1YpxH7QiCqAtcM';
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
     // --- 全局变量 ---
