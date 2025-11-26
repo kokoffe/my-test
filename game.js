@@ -1,49 +1,72 @@
 window.onload = async function() {
-    // --- 1. 基础初始化（Supabase + DOM元素获取）---
-    // 动态导入Supabase客户端
+    // --- 1. 基础初始化：Supabase 配置 + DOM 元素获取 ---
     const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
     
-    // Supabase配置（保持原配置不变）
+    // Supabase 原有配置（保持不变）
     const supabaseUrl = 'https://dudqpldnkjdsvwrwills.supabase.co';
     const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1ZHFwbGRua2pkc3Z3cndpbGxzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQxMjA1NjAsImV4cCI6MjA3OTY5NjU2MH0.FaWgUWgosKNos-dIqrW4avOiq7Xfp1YpxH7QiCqAtcM';
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-    // 获取DOM元素（含新增的道具提示元素）
+    // 获取所有DOM元素（含道具提示）
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const scoreElement = document.getElementById('score');
-    const gameTipElement = document.getElementById('gameTip'); // 游戏状态提示
-    const propTipElement = document.getElementById('propTip'); // 道具效果提示
-    const leaderboardContainer = document.getElementById('leaderboardContainer'); // 排行榜容器
-    const leaderboardLoading = document.getElementById('leaderboardLoading'); // 排行榜加载状态
-    const leaderboardElement = document.getElementById('leaderboard'); // 排行榜列表
+    const gameTipElement = document.getElementById('gameTip');
+    const propTipElement = document.getElementById('propTip');
+    const leaderboardContainer = document.getElementById('leaderboardContainer');
+    const leaderboardLoading = document.getElementById('leaderboardLoading');
+    const leaderboardElement = document.getElementById('leaderboard');
+    const nameModal = document.getElementById('nameModal');
+    const playerNameInput = document.getElementById('playerNameInput');
+    const startGameBtn = document.getElementById('startGameBtn');
 
-    // --- 2. 游戏核心配置与全局变量 ---
-    const gridSize = 20; // 每个格子大小（像素）
-    let tileCount; // 画布横向/纵向格子数（响应式计算）
-    
-    // 游戏基础状态变量
-    let snake = [{ x: 10, y: 10 }];
-    let food = {};
-    let dx = 0; // 水平方向速度（-1左，1右，0静止）
-    let dy = 0; // 垂直方向速度（-1上，1下，0静止）
-    let score = 0;
+
+    // --- 2. 游戏核心配置：解决地图小、蛇太大问题 ---
+    const gridSize = 20; // 每个格子尺寸（20px，不变）
+    let tileCount; // 地图格子数（最小20个，避免地图过小）
+
+    // 初始化Canvas尺寸：基础400x400px，自适应窗口且有最小/最大限制
+    function initCanvasSize() {
+        const baseSize = 400; // 基础尺寸（对应20个格子）
+        // 窗口宽度-40避免超出屏幕，同时不小于基础尺寸、不大于600px
+        const canvasSize = Math.min(600, Math.max(baseSize, window.innerWidth - 40));
+        canvas.width = canvasSize;
+        canvas.height = canvasSize;
+        // 样式控制：居中+最小宽度，防止缩太小
+        canvas.style.minWidth = `${baseSize}px`;
+        canvas.style.maxWidth = '600px';
+        canvas.style.margin = '0 auto';
+        canvas.style.display = 'block';
+        // 计算格子数（最小20个，确保地图足够大）
+        tileCount = Math.max(20, Math.floor(canvas.width / gridSize));
+    }
+
+    // 游戏状态变量：蛇初始3节（避免太小/太大），且居中显示
+    let snake = [
+        { x: Math.floor(tileCount/2), y: Math.floor(tileCount/2) }, // 蛇头（居中）
+        { x: Math.floor(tileCount/2) - 1, y: Math.floor(tileCount/2) }, // 蛇身1
+        { x: Math.floor(tileCount/2) - 2, y: Math.floor(tileCount/2) }  // 蛇身2
+    ];
+    let food = {}; // 普通食物
+    let dx = 0; // 水平方向（-1左，1右，0静止）
+    let dy = 0; // 垂直方向（-1上，1下，0静止）
+    let score = 0; // 当前分数
     let playerName = ''; // 玩家昵称
-    let gameLoop = null; // 游戏循环ID（控制暂停/结束）
+    let gameLoop = null; // 游戏循环定时器
 
-    // ===== 新增：道具系统核心变量 =====
-    let prop = null; // 当前道具（null=无道具）
-    const propTypes = { // 3种道具配置：颜色+效果+持续时间
-        speedUp: { // 加速道具：提升速度+得分翻倍
-            color: '#ffd700', // 金色
-            borderColor: '#ff9900', // 橙色边框
+    // 道具系统配置：降低道具频率，避免抢占食物
+    let prop = null; // 当前道具（null=无）
+    const propTypes = {
+        speedUp: { // 加速道具：金色+橙色边框
+            color: '#ffd700',
+            borderColor: '#ff9900',
             effect: () => {
-                const oldInterval = 100; // 原基础速度（100ms/帧）
+                const oldInterval = 100; // 原速度（100ms/帧）
                 clearInterval(gameLoop);
                 gameLoop = setInterval(drawGame, 60); // 提速至60ms/帧
                 scoreMultiplier = 2; // 得分×2
-                showPropTip('加速生效！得分×2（持续5秒）');
-                // 5秒后恢复默认状态
+                showPropTip('加速生效！得分×2（5秒）');
+                // 5秒后恢复
                 setTimeout(() => {
                     clearInterval(gameLoop);
                     gameLoop = setInterval(drawGame, oldInterval);
@@ -53,15 +76,15 @@ window.onload = async function() {
             },
             duration: 5000
         },
-        speedDown: { // 减速道具：降低速度，操作更灵活
-            color: '#4169e1', // 蓝色
-            borderColor: '#191970', // 深蓝色边框
+        speedDown: { // 减速道具：蓝色+深蓝色边框
+            color: '#4169e1',
+            borderColor: '#191970',
             effect: () => {
                 const oldInterval = 100;
                 clearInterval(gameLoop);
                 gameLoop = setInterval(drawGame, 150); // 减速至150ms/帧
-                showPropTip('减速生效！操作更灵活（持续5秒）');
-                // 5秒后恢复默认状态
+                showPropTip('减速生效！操作更灵活（5秒）');
+                // 5秒后恢复
                 setTimeout(() => {
                     clearInterval(gameLoop);
                     gameLoop = setInterval(drawGame, oldInterval);
@@ -70,13 +93,13 @@ window.onload = async function() {
             },
             duration: 5000
         },
-        invincible: { // 无敌道具：撞墙/撞自己不死亡，仅扣1节
-            color: '#ff4500', // 橙红色
-            borderColor: '#dc143c', // 深红色边框
+        invincible: { // 无敌道具：橙红色+深红色边框
+            color: '#ff4500',
+            borderColor: '#dc143c',
             effect: () => {
-                isInvincible = true; // 开启无敌状态
-                showPropTip('无敌生效！撞墙/撞自己仅扣1节（持续4秒）');
-                // 4秒后关闭无敌
+                isInvincible = true; // 开启无敌
+                showPropTip('无敌生效！撞墙仅扣1节（4秒）');
+                // 4秒后关闭
                 setTimeout(() => {
                     isInvincible = false;
                     showPropTip('无敌效果结束');
@@ -86,240 +109,279 @@ window.onload = async function() {
         }
     };
     let scoreMultiplier = 1; // 得分倍数（默认×1）
-    let isInvincible = false; // 无敌状态标记（默认关闭）
-    let propTimer = null; // 道具过期定时器（5秒未吃自动消失）
-    let foodGenerateCount = 0; // 普通食物生成计数（控制道具生成概率）
+    let isInvincible = false; // 无敌状态标记
+    let propTimer = null; // 道具过期定时器
+    // 道具生成规则：每5次普通食物，20%概率生成（降低频率，避免食物断层）
+    let foodGenerateCount = 0;
+    const PROP_INTERVAL = 5; // 每5次食物尝试生成道具
+    const PROP_RATE = 0.2; // 20%生成概率
 
-    // --- 3. 昵称模态框与游戏启动逻辑 ---
-    const nameModal = document.getElementById('nameModal');
-    const playerNameInput = document.getElementById('playerNameInput');
-    const startGameBtn = document.getElementById('startGameBtn');
 
-    // 从localStorage读取历史昵称（实现“记住昵称”功能）
+    // --- 3. 昵称模态框逻辑：初始化地图+游戏 ---
+    // 读取本地存储的昵称
     playerName = localStorage.getItem('snakePlayerName') || '';
 
     // 初始化流程：有昵称直接进游戏，无昵称显示模态框
     if (playerName) {
         nameModal.style.display = 'none';
+        initCanvasSize(); // 初始化地图尺寸
         await fetchAndDisplayLeaderboard(); // 加载排行榜
-        startGame(); // 初始化游戏（等待用户操作）
+        startGame(); // 启动游戏
     } else {
         nameModal.style.display = 'flex';
-        playerNameInput.focus(); // 输入框自动聚焦
+        playerNameInput.focus();
+        initCanvasSize(); // 模态框显示时也初始化地图（避免异常）
     }
 
     // 昵称确认按钮点击事件
     startGameBtn.addEventListener('click', async () => {
         const inputName = playerNameInput.value.trim();
-        if (inputName) {
+        if (inputName && inputName.length <= 10) { // 限制昵称长度
             playerName = inputName;
-            localStorage.setItem('snakePlayerName', playerName); // 保存昵称
+            localStorage.setItem('snakePlayerName', playerName);
             nameModal.style.display = 'none';
+            initCanvasSize();
             await fetchAndDisplayLeaderboard();
             startGame();
         } else {
-            alert('请输入有效的昵称（最多10个字符）！');
+            alert('请输入1-10个字符的有效昵称！');
             playerNameInput.focus();
         }
     });
 
-    // 昵称输入框支持回车键确认
+    // 昵称输入框按回车确认
     playerNameInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            startGameBtn.click();
-        }
+        if (e.key === 'Enter') startGameBtn.click();
     });
 
-    // --- 4. 游戏控制核心函数 ---
+
+    // --- 4. 游戏核心控制：启动/重置 ---
     /**
-     * 初始化/重置游戏状态（含道具状态重置）
+     * 启动/重置游戏：恢复初始状态，生成初始食物
      */
     function startGame() {
-        // 1. 重置基础游戏数据
-        snake = [{ x: 10, y: 10 }];
+        // 重置蛇：居中显示，3节长度
+        snake = [
+            { x: Math.floor(tileCount/2), y: Math.floor(tileCount/2) },
+            { x: Math.floor(tileCount/2) - 1, y: Math.floor(tileCount/2) },
+            { x: Math.floor(tileCount/2) - 2, y: Math.floor(tileCount/2) }
+        ];
         dx = 0;
         dy = 0;
         score = 0;
         scoreElement.textContent = score;
-        tileCount = Math.floor(canvas.width / gridSize); // 响应式计算格子数
-        randomFood(); // 生成初始食物/道具
-        
-        // 2. 重置道具相关状态
-        if (propTimer) clearTimeout(propTimer); // 清除道具过期定时器
-        prop = null; // 清空当前道具
-        scoreMultiplier = 1; // 得分倍数恢复×1
-        isInvincible = false; // 关闭无敌
-        foodGenerateCount = 0; // 重置食物生成计数
-        propTipElement.style.opacity = '0'; // 隐藏道具提示
-        
-        // 3. 清除旧循环，标记为“未启动”
+
+        // 重置道具状态
+        if (propTimer) clearTimeout(propTimer);
+        prop = null;
+        scoreMultiplier = 1;
+        isInvincible = false;
+        foodGenerateCount = 0;
+        propTipElement.style.opacity = '0';
+
+        // 生成初始食物（确保游戏开始时有食物）
+        randomFood();
+
+        // 重置游戏循环
         if (gameLoop) clearInterval(gameLoop);
-        gameLoop = null; 
-        
-        // 4. 显示“等待开始”提示，绘制初始画面
+        gameLoop = null;
+
+        // 显示开始提示
         gameTipElement.textContent = '按方向键或点击按钮开始游戏';
         gameTipElement.style.opacity = '1';
-        drawGame();
+        drawGame(); // 初始绘制
     }
 
     /**
-     * 游戏结束后重置流程（含分数上传、排行榜更新）
+     * 游戏结束：上传分数+提示重新开始
      */
     async function resetGame() {
-        // 1. 停止游戏循环
-        if (gameLoop) clearInterval(gameLoop);
-        const finalScore = score; // 保存最终得分
+        clearInterval(gameLoop); // 停止循环
+        const finalScore = score;
 
-        // 2. 显示游戏结束提示
+        // 显示结束提示
         gameTipElement.textContent = `游戏结束！最终得分：${finalScore}`;
         gameTipElement.style.opacity = '1';
 
-        // 3. 分数>0时上传到Supabase
+        // 分数>0时上传到Supabase
         if (finalScore > 0) {
             await uploadScore(playerName, finalScore);
-            await fetchAndDisplayLeaderboard(); // 上传后刷新排行榜
+            await fetchAndDisplayLeaderboard(); // 刷新排行榜
         }
 
-        // 4. 询问用户是否重新开始
-        const isRestart = confirm(`游戏结束！你的得分：${finalScore}\n是否重新开始游戏？`);
-        if (isRestart) {
-            startGame();
-        } else {
-            // 不重新开始时，清空画布并显示提示
-            clearCanvas();
+        // 询问是否重新开始
+        const isRestart = confirm(`得分：${finalScore}\n是否重新开始游戏？`);
+        if (isRestart) startGame();
+        else {
+            clearCanvas(); // 清空画布
             gameTipElement.textContent = '点击“方向键”或“按钮”重新开始';
             gameTipElement.style.opacity = '1';
         }
     }
 
-    // --- 5. Supabase数据交互函数（分数上传+排行榜）---
+
+    // --- 5. Supabase 交互：分数上传+排行榜 ---
     /**
-     * 上传玩家分数到Supabase
+     * 上传分数到Supabase
      * @param {string} name - 玩家昵称
-     * @param {number} playerScore - 玩家得分
+     * @param {number} score - 最终得分
      */
-    async function uploadScore(name, playerScore) {
+    async function uploadScore(name, score) {
         try {
             const { error } = await supabase
                 .from('leaderboard')
-                .insert([{ player_name: name, score: playerScore }]);
-            
+                .insert([{ player_name: name, score: score }]);
             if (error) throw error;
-            console.log(`分数上传成功：${name} - ${playerScore}分`);
+            console.log(`分数上传成功：${name} - ${score}分`);
         } catch (error) {
             console.error('分数上传失败：', error.message);
+            alert('分数上传失败，请稍后再试！');
         }
     }
 
     /**
-     * 从Supabase获取排行榜并渲染（带加载状态）
+     * 从Supabase获取排行榜并渲染
      */
     async function fetchAndDisplayLeaderboard() {
-        // 1. 显示加载状态
         leaderboardLoading.style.display = 'flex';
         leaderboardElement.innerHTML = '';
 
         try {
+            // 获取Top15分数（按分数降序，相同分数按时间升序）
             const { data, error } = await supabase
                 .from('leaderboard')
-                .select('player_name, score')
+                .select('player_name, score, created_at')
                 .order('score', { ascending: false })
+                .order('created_at', { ascending: true })
                 .limit(15);
 
             if (error) throw error;
 
-            // 2. 处理无数据场景
+            // 无数据时显示提示
             if (data.length === 0) {
                 leaderboardElement.innerHTML = '<li class="empty-leaderboard">暂无排行榜数据，快来成为第一个上榜者吧！</li>';
                 return;
             }
 
-            // 3. 渲染排行榜（前三名带奖牌标记）
+            // 渲染排行榜（前三名带奖牌标记）
             const olList = document.createElement('ol');
-            data.forEach((entry, index) => {
-                const liItem = document.createElement('li');
-                if (index === 0) liItem.innerHTML = `<span class="rank top1">🥇</span> ${entry.player_name}：${entry.score}分`;
-                else if (index === 1) liItem.innerHTML = `<span class="rank top2">🥈</span> ${entry.player_name}：${entry.score}分`;
-                else if (index === 2) liItem.innerHTML = `<span class="rank top3">🥉</span> ${entry.player_name}：${entry.score}分`;
-                else liItem.innerHTML = `<span class="rank">${index + 1}</span> ${entry.player_name}：${entry.score}分`;
-                olList.appendChild(liItem);
+            data.forEach((item, index) => {
+                const li = document.createElement('li');
+                // 格式化时间（YYYY-MM-DD HH:MM）
+                const time = new Date(item.created_at).toLocaleString('zh-CN', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                // 前三名样式
+                if (index === 0) li.innerHTML = `<span class="rank top1">🥇</span> ${item.player_name}：${item.score}分（${time}）`;
+                else if (index === 1) li.innerHTML = `<span class="rank top2">🥈</span> ${item.player_name}：${item.score}分（${time}）`;
+                else if (index === 2) li.innerHTML = `<span class="rank top3">🥉</span> ${item.player_name}：${item.score}分（${time}）`;
+                else li.innerHTML = `<span class="rank">${index + 1}</span> ${item.player_name}：${item.score}分（${time}）`;
+                olList.appendChild(li);
             });
             leaderboardElement.appendChild(olList);
 
         } catch (error) {
-            console.error('排行榜加载失败：', error.message);
             leaderboardElement.innerHTML = '<li class="error-leaderboard">排行榜加载失败，请刷新页面重试！</li>';
+            console.error('排行榜加载失败：', error.message);
         } finally {
-            // 4. 无论成功/失败，隐藏加载状态
             leaderboardLoading.style.display = 'none';
         }
     }
 
-    // --- 6. 游戏画面绘制与逻辑计算 ---
+
+    // --- 6. 游戏绘制与逻辑：解决无食物问题 ---
     /**
-     * 清空Canvas画布
+     * 清空画布
      */
     function clearCanvas() {
-        ctx.fillStyle = '#000'; // 黑色背景（匹配深色主题）
+        ctx.fillStyle = '#000'; // 黑色背景
         ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
     /**
-     * 随机生成普通食物/道具（道具生成规则：每3次食物15%概率）
+     * 生成食物/道具：解决“无食物”问题（增加容错+兜底）
      */
     function randomFood() {
         foodGenerateCount++;
-        let isOverlap;
+        let isOverlap = true;
+        let loopCount = 0; // 循环计数器：避免蛇占满地图时死循环
+        const maxLoop = 100; // 最大循环次数
 
-        // 判定是否生成道具（每3次普通食物，15%概率）
-        const isPropGenerate = foodGenerateCount % 3 === 0 && Math.random() < 0.15;
-        if (isPropGenerate) {
-            // 随机选择一种道具类型
+        // 判定是否生成道具（每5次食物，20%概率）
+        const isProp = foodGenerateCount % PROP_INTERVAL === 0 && Math.random() < PROP_RATE;
+        if (isProp) {
+            // 随机选择道具类型
             const propKeys = Object.keys(propTypes);
-            const randomPropKey = propKeys[Math.floor(Math.random() * propKeys.length)];
-            
-            // 生成道具坐标（避免与蛇身重叠）
-            do {
+            const randomProp = propKeys[Math.floor(Math.random() * propKeys.length)];
+
+            // 生成道具：最多尝试100次，超过则强制生成
+            while (isOverlap && loopCount < maxLoop) {
+                loopCount++;
                 isOverlap = false;
+                // 随机道具坐标
                 prop = {
                     x: Math.floor(Math.random() * tileCount),
                     y: Math.floor(Math.random() * tileCount),
-                    type: randomPropKey,
-                    config: propTypes[randomPropKey]
+                    type: randomProp,
+                    config: propTypes[randomProp]
                 };
-                // 检查道具是否与蛇身重叠
+                // 检查是否与蛇身重叠
                 snake.forEach(segment => {
                     if (segment.x === prop.x && segment.y === prop.y) isOverlap = true;
                 });
-            } while (isOverlap);
+                // 超过最大循环次数：强制生成（避免卡住）
+                if (loopCount >= maxLoop) {
+                    isOverlap = false;
+                    console.log('道具生成重叠过多，强制生成');
+                }
+            }
 
-            // 道具5秒后自动消失
+            // 道具5秒后过期，过期后立即生成食物（兜底）
             if (propTimer) clearTimeout(propTimer);
             propTimer = setTimeout(() => {
                 prop = null;
                 showPropTip('道具已过期');
+                randomFood(); // 过期后立即补食物
             }, 5000);
-            foodGenerateCount = 0; // 重置计数，避免连续生成道具
+            foodGenerateCount = 0; // 重置食物计数
 
         } else {
-            // 生成普通食物（避免与蛇身重叠）
-            do {
+            // 生成普通食物：同样增加容错
+            while (isOverlap && loopCount < maxLoop) {
+                loopCount++;
                 isOverlap = false;
+                // 随机食物坐标
                 food = {
                     x: Math.floor(Math.random() * tileCount),
                     y: Math.floor(Math.random() * tileCount)
                 };
-                // 检查食物是否与蛇身重叠
+                // 检查是否与蛇身/道具重叠
                 snake.forEach(segment => {
                     if (segment.x === food.x && segment.y === food.y) isOverlap = true;
                 });
-            } while (isOverlap);
+                if (prop && food.x === prop.x && food.y === prop.y) isOverlap = true;
+                // 超过最大循环次数：强制生成
+                if (loopCount >= maxLoop) {
+                    isOverlap = false;
+                    console.log('食物生成重叠过多，强制生成');
+                }
+            }
+        }
+
+        // 最终兜底：确保食物/道具至少有一个存在
+        if ((!food.x && !food.y) && !prop) {
+            food = { x: 2, y: 2 }; // 强制生成默认食物
+            console.log('兜底：强制生成食物');
         }
     }
 
     /**
      * 显示道具效果提示（3秒后自动隐藏）
-     * @param {string} text - 提示文本
+     * @param {string} text - 提示内容
      */
     function showPropTip(text) {
         propTipElement.textContent = text;
@@ -333,9 +395,8 @@ window.onload = async function() {
      * 绘制道具（带边框，区分普通食物）
      */
     function drawProp() {
-        if (!prop) return; // 无道具时不绘制
+        if (!prop) return;
         const { x, y, config } = prop;
-        
         // 绘制道具主体
         ctx.fillStyle = config.color;
         ctx.fillRect(
@@ -344,7 +405,6 @@ window.onload = async function() {
             gridSize - 2,
             gridSize - 2
         );
-        
         // 绘制道具边框（突出显示）
         ctx.strokeStyle = config.borderColor;
         ctx.lineWidth = 2;
@@ -357,11 +417,15 @@ window.onload = async function() {
     }
 
     /**
-     * 绘制蛇（绿色格子，带间距）
+     * 绘制蛇：区分蛇头/蛇身，方便判断方向
      */
     function drawSnake() {
-        ctx.fillStyle = '#39ff14'; // 亮绿色蛇身
-        snake.forEach(segment => {
+        snake.forEach((segment, index) => {
+            // 蛇头：深绿色（区分蛇身）
+            if (index === 0) ctx.fillStyle = '#00cc00';
+            // 蛇身：亮绿色
+            else ctx.fillStyle = '#39ff14';
+            // 绘制蛇（留1px间距，避免贴边）
             ctx.fillRect(
                 segment.x * gridSize + 1,
                 segment.y * gridSize + 1,
@@ -372,10 +436,10 @@ window.onload = async function() {
     }
 
     /**
-     * 绘制食物（红色格子，带间距）
+     * 绘制普通食物（红色）
      */
     function drawFood() {
-        ctx.fillStyle = '#ff6b6b'; // 亮红色食物
+        ctx.fillStyle = '#ff6b6b'; // 亮红色
         ctx.fillRect(
             food.x * gridSize + 1,
             food.y * gridSize + 1,
@@ -385,14 +449,14 @@ window.onload = async function() {
     }
 
     /**
-     * 移动蛇（更新蛇头位置，处理蛇身跟随）
+     * 移动蛇：处理蛇身跟随
      */
     function moveSnake() {
         // 计算新蛇头位置
         const head = { x: snake[0].x + dx, y: snake[0].y + dy };
         // 新蛇头加入蛇身头部
         snake.unshift(head);
-        // 未吃到食物/道具时，删除蛇尾（实现移动效果）
+        // 未吃到食物/道具时，删除蛇尾（实现移动）
         if (!(head.x === food.x && head.y === food.y) && !(prop && head.x === prop.x && head.y === prop.y)) {
             snake.pop();
         }
@@ -400,7 +464,7 @@ window.onload = async function() {
 
     /**
      * 检查游戏是否结束（撞墙/撞自己）
-     * @returns {boolean} - true=游戏结束，false=继续
+     * @returns {boolean} - true=结束，false=继续
      */
     function checkGameOver() {
         const head = snake[0];
@@ -418,32 +482,32 @@ window.onload = async function() {
     }
 
     /**
-     * 检查碰撞（普通食物/道具）
+     * 检查碰撞：食物/道具
      */
     function checkFoodCollision() {
         const head = snake[0];
-        // 1. 先检测道具碰撞
+        // 1. 道具碰撞：触发效果
         if (prop && head.x === prop.x && head.y === prop.y) {
-            prop.config.effect(); // 触发道具效果
+            prop.config.effect();
             prop = null; // 道具被吃后清空
-            if (propTimer) clearTimeout(propTimer); // 清除道具过期定时器
+            if (propTimer) clearTimeout(propTimer); // 清除过期定时器
             return;
         }
-        // 2. 再检测普通食物碰撞（得分×倍数）
+        // 2. 食物碰撞：加分+生成新食物（避免无食物）
         if (head.x === food.x && head.y === food.y) {
-            score += 10 * scoreMultiplier;
+            score += 10 * scoreMultiplier; // 得分×倍数
             scoreElement.textContent = score;
-            randomFood(); // 生成新食物/道具
+            randomFood(); // 立即生成新食物
         }
     }
 
     /**
-     * 游戏主绘制循环（控制画面更新与逻辑执行）
+     * 游戏主绘制循环
      */
     function drawGame() {
         clearCanvas();
 
-        // 未启动游戏时：只绘制静态画面（蛇+食物+道具）
+        // 未开始游戏：仅绘制静态画面（蛇+食物+道具）
         if (gameLoop === null) {
             drawFood();
             drawProp();
@@ -451,81 +515,83 @@ window.onload = async function() {
             return;
         }
 
-        // 已启动游戏：执行完整逻辑
+        // 已开始游戏：执行完整逻辑
         moveSnake();
-        // 无敌状态下碰撞：不结束游戏，仅扣1节身体
+
+        // 无敌状态：撞墙/撞自己不结束，仅扣1节
         if (checkGameOver()) {
             if (isInvincible) {
                 snake.pop(); // 扣1节身体
                 showPropTip('无敌保护！扣除1节身体');
                 return;
             } else {
-                resetGame();
+                resetGame(); // 非无敌则结束游戏
                 return;
             }
         }
-        checkFoodCollision();
-        drawFood();
-        drawProp();
-        drawSnake();
+
+        checkFoodCollision(); // 检查碰撞
+        drawFood(); // 绘制食物
+        drawProp(); // 绘制道具
+        drawSnake(); // 绘制蛇
     }
 
-    // --- 7. 输入控制（键盘+触摸+按钮）---
+
+    // --- 7. 输入控制：键盘+按钮+触摸 ---
     /**
      * 处理方向控制（防止反向移动）
-     * @param {number} keyCode - 键盘码（37左/38上/39右/40下）
+     * @param {number} keyCode - 键盘码
      */
     function changeDirection(keyCode) {
-        // 第一次操作：启动游戏循环，隐藏“等待开始”提示
+        // 首次操作：启动游戏循环
         if (gameLoop === null) {
             gameLoop = setInterval(drawGame, 100); // 基础速度100ms/帧
-            gameTipElement.style.opacity = '0';
+            gameTipElement.style.opacity = '0'; // 隐藏开始提示
         }
 
-        // 方向控制（防止反向移动）
+        // 防止反向移动（如向上时不能直接向下）
         const goingUp = dy === -1;
         const goingDown = dy === 1;
         const goingLeft = dx === -1;
         const goingRight = dx === 1;
 
-        if (keyCode === 37 && !goingRight) { // 左
-            dx = -1;
-            dy = 0;
-        }
-        if (keyCode === 38 && !goingDown) { // 上
-            dx = 0;
-            dy = -1;
-        }
-        if (keyCode === 39 && !goingLeft) { // 右
-            dx = 1;
-            dy = 0;
-        }
-        if (keyCode === 40 && !goingUp) { // 下
-            dx = 0;
-            dy = 1;
+        switch (keyCode) {
+            case 37: // 左箭头
+                if (!goingRight) { dx = -1; dy = 0; }
+                break;
+            case 38: // 上箭头
+                if (!goingDown) { dx = 0; dy = -1; }
+                break;
+            case 39: // 右箭头
+                if (!goingLeft) { dx = 1; dy = 0; }
+                break;
+            case 40: // 下箭头
+                if (!goingUp) { dx = 0; dy = 1; }
+                break;
         }
     }
 
-    // 键盘方向键控制（阻止页面滚动）
+    // 键盘控制：方向键
     document.addEventListener('keydown', (e) => {
+        // 仅响应方向键
         if ([37, 38, 39, 40].includes(e.keyCode)) {
-            e.preventDefault();
+            e.preventDefault(); // 阻止页面滚动
             changeDirection(e.keyCode);
         }
     });
 
-    // 屏幕按钮点击控制
+    // 屏幕按钮控制：上下左右按钮
     document.getElementById('upButton').addEventListener('click', () => changeDirection(38));
     document.getElementById('downButton').addEventListener('click', () => changeDirection(40));
     document.getElementById('leftButton').addEventListener('click', () => changeDirection(37));
     document.getElementById('rightButton').addEventListener('click', () => changeDirection(39));
 
-    // 移动端触摸控制（避免触摸延迟）
-    const controlButtons = document.querySelectorAll('.control-btn');
-    controlButtons.forEach(button => {
-        button.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            switch (button.id) {
+    // 移动端触摸控制：虚拟按钮
+    const controlBtns = document.querySelectorAll('.control-btn');
+    controlBtns.forEach(btn => {
+        btn.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // 防止触摸事件冒泡
+            switch (btn.id) {
                 case 'upButton': changeDirection(38); break;
                 case 'downButton': changeDirection(40); break;
                 case 'leftButton': changeDirection(37); break;
@@ -534,14 +600,13 @@ window.onload = async function() {
         });
     });
 
-    // --- 8. 响应式适配（窗口大小变化时重新计算）---
+
+    // --- 8. 响应式适配：窗口缩放时调整地图 ---
     window.addEventListener('resize', () => {
-        if (canvas) {
-            tileCount = Math.floor(canvas.width / gridSize);
-            // 未启动游戏时，重新绘制画面
-            if (gameLoop === null) {
-                drawGame();
-            }
-        }
+        initCanvasSize(); // 重新计算Canvas尺寸和格子数
+        // 重新生成食物（避免食物超出新地图范围）
+        if (food) randomFood();
+        // 未开始游戏时重绘
+        if (gameLoop === null) drawGame();
     });
 };
